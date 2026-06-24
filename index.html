@@ -35,6 +35,8 @@
         object-fit: cover !important;
         z-index: 0 !important;
         transform: none !important;
+        visibility: visible !important;
+        opacity: 1 !important;
       }
 
       .a-canvas,
@@ -60,7 +62,7 @@
       }
 
       .start-panel {
-        max-width: 360px;
+        max-width: 380px;
       }
 
       .start-panel h1 {
@@ -152,9 +154,6 @@
           };
           var fit = function () {
             var size = viewport();
-            document.documentElement.style.setProperty('--app-width', size.width + 'px');
-            document.documentElement.style.setProperty('--app-height', size.height + 'px');
-
             document.querySelectorAll('video, #arjs-video').forEach(function (video) {
               video.setAttribute('playsinline', '');
               video.setAttribute('webkit-playsinline', '');
@@ -209,20 +208,6 @@
         }
       });
 
-      var requestCameraOnce = async function () {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error('This browser does not expose the camera API on this page.');
-        }
-
-        var stream = await navigator.mediaDevices.getUserMedia({
-          audio: false,
-          video: { facingMode: { ideal: 'environment' } }
-        });
-        stream.getTracks().forEach(function (track) {
-          track.stop();
-        });
-      };
-
       var createScene = function () {
         var root = document.getElementById('ar-root');
         root.innerHTML = '';
@@ -246,25 +231,39 @@
         return scene;
       };
 
+      var getCameraVideo = function () {
+        return Array.prototype.find.call(document.querySelectorAll('video, #arjs-video'), function (video) {
+          return video.srcObject || video.readyState > 0 || video.videoWidth > 0;
+        });
+      };
+
       window.addEventListener('DOMContentLoaded', function () {
         var start = document.getElementById('start-ar');
         var screen = document.getElementById('start-screen');
         var status = document.getElementById('start-status');
-        start.addEventListener('click', async function () {
+        start.addEventListener('click', function () {
           start.disabled = true;
-          status.textContent = 'Requesting camera permission...';
+          status.textContent = 'Starting AR.js camera...';
+          createScene();
 
-          try {
-            await requestCameraOnce();
-            status.textContent = 'Starting AR camera...';
-            createScene();
-            window.setTimeout(function () {
-              screen.style.display = 'none';
-            }, 1200);
-          } catch (error) {
-            start.disabled = false;
-            status.textContent = 'Camera did not start: ' + (error && error.message ? error.message : error);
-          }
+          var startedAt = Date.now();
+          var timer = window.setInterval(function () {
+            var video = getCameraVideo();
+            if (video) {
+              status.textContent = 'Camera started.';
+              window.clearInterval(timer);
+              window.setTimeout(function () {
+                screen.style.display = 'none';
+              }, 350);
+              return;
+            }
+
+            if (Date.now() - startedAt > 15000) {
+              window.clearInterval(timer);
+              start.disabled = false;
+              status.textContent = 'AR.js did not create a camera feed. Try Chrome, or reset camera permission for this site and reload.';
+            }
+          }, 250);
         });
       });
     </script>
