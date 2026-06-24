@@ -47,6 +47,53 @@
         pointer-events: none;
       }
 
+      .start-screen {
+        position: fixed;
+        inset: 0;
+        z-index: 5;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        color: #fff;
+        background: #050505;
+        text-align: center;
+      }
+
+      .start-panel {
+        max-width: 360px;
+      }
+
+      .start-panel h1 {
+        margin: 0 0 10px;
+        font-size: 24px;
+        font-weight: 700;
+      }
+
+      .start-panel p {
+        margin: 0 0 18px;
+        color: #cfcfcf;
+        font-size: 15px;
+        line-height: 1.45;
+      }
+
+      .start-panel button {
+        min-height: 48px;
+        padding: 0 22px;
+        border: 0;
+        border-radius: 8px;
+        color: #07130c;
+        background: #35d07f;
+        font: inherit;
+        font-weight: 700;
+      }
+
+      .start-panel .status {
+        min-height: 20px;
+        margin-top: 12px;
+        color: #f1d27a;
+        font-size: 13px;
+      }
+
       .hud {
         position: fixed;
         left: 12px;
@@ -156,40 +203,51 @@
           tick();
         }
       });
+
+      var createScene = function () {
+        document.getElementById('ar-root').innerHTML = '\
+          <a-scene embedded fit-ar-layers vr-mode-ui="enabled: false" renderer="antialias: true; alpha: true; precision: mediump" arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: false;">\
+            <a-assets timeout="10000">\
+              <a-asset-item id="duck-model" src="https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Models@master/2.0/Duck/glTF-Binary/Duck.glb"></a-asset-item>\
+            </a-assets>\
+            <a-marker preset="hiro" smooth="true" smoothCount="5" smoothTolerance="0.01" smoothThreshold="2">\
+              <a-cylinder color="#35d07f" radius="0.35" height="0.06" position="0 0 0" opacity="0.85"></a-cylinder>\
+              <a-entity gltf-model="#duck-model" position="0 0.1 0" rotation="-90 0 0" scale="0.014 0.014 0.014" animation="property: rotation; to: -90 360 0; loop: true; dur: 5000; easing: linear"></a-entity>\
+            </a-marker>\
+            <a-entity camera></a-entity>\
+          </a-scene>';
+      };
+
+      window.addEventListener('DOMContentLoaded', function () {
+        var start = document.getElementById('start-ar');
+        var screen = document.getElementById('start-screen');
+        var status = document.getElementById('start-status');
+        start.addEventListener('click', function () {
+          start.disabled = true;
+          status.textContent = 'Opening camera...';
+          createScene();
+          window.setTimeout(function () {
+            screen.style.display = 'none';
+          }, 700);
+        });
+      });
     </script>
   </head>
   <body>
-    <div class="hud">
-      <strong>AR.js marker test</strong>
-      Allow camera access, then point at the Hiro marker. If tracking works, a duck and green base appear on the marker.
+    <div id="start-screen" class="start-screen">
+      <div class="start-panel">
+        <h1>AR.js Marker MVP</h1>
+        <p>Tap start, allow camera access, then point at the Hiro marker.</p>
+        <button id="start-ar" type="button">Start Camera</button>
+        <div id="start-status" class="status"></div>
+      </div>
     </div>
 
-    <a-scene
-      embedded
-      fit-ar-layers
-      vr-mode-ui="enabled: false"
-      renderer="antialias: true; alpha: true; precision: mediump"
-      arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: false;"
-    >
-      <a-assets timeout="10000">
-        <a-asset-item
-          id="duck-model"
-          src="https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Models@master/2.0/Duck/glTF-Binary/Duck.glb"
-        ></a-asset-item>
-      </a-assets>
+    <div class="hud">
+      <strong>AR.js marker test</strong>
+      Point at the Hiro marker. If tracking works, a duck and green base appear on the marker.
+    </div>
 
-      <a-marker preset="hiro" smooth="true" smoothCount="5" smoothTolerance="0.01" smoothThreshold="2">
-        <a-cylinder color="#35d07f" radius="0.35" height="0.06" position="0 0 0" opacity="0.85"></a-cylinder>
-        <a-entity
-          gltf-model="#duck-model"
-          position="0 0.1 0"
-          rotation="-90 0 0"
-          scale="0.014 0.014 0.014"
-          animation="property: rotation; to: -90 360 0; loop: true; dur: 5000; easing: linear"
-        ></a-entity>
-      </a-marker>
-
-      <a-entity camera></a-entity>
-    </a-scene>
+    <div id="ar-root"></div>
   </body>
 </html>
