@@ -87,11 +87,16 @@
         font-weight: 700;
       }
 
+      .start-panel button:disabled {
+        opacity: 0.65;
+      }
+
       .start-panel .status {
         min-height: 20px;
         margin-top: 12px;
         color: #f1d27a;
         font-size: 13px;
+        line-height: 1.35;
       }
 
       .hud {
@@ -204,31 +209,62 @@
         }
       });
 
+      var requestCameraOnce = async function () {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error('This browser does not expose the camera API on this page.');
+        }
+
+        var stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: { facingMode: { ideal: 'environment' } }
+        });
+        stream.getTracks().forEach(function (track) {
+          track.stop();
+        });
+      };
+
       var createScene = function () {
-        document.getElementById('ar-root').innerHTML = '\
-          <a-scene embedded fit-ar-layers vr-mode-ui="enabled: false" renderer="antialias: true; alpha: true; precision: mediump" arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: false;">\
-            <a-assets timeout="10000">\
-              <a-asset-item id="duck-model" src="https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Models@master/2.0/Duck/glTF-Binary/Duck.glb"></a-asset-item>\
-            </a-assets>\
-            <a-marker preset="hiro" smooth="true" smoothCount="5" smoothTolerance="0.01" smoothThreshold="2">\
-              <a-cylinder color="#35d07f" radius="0.35" height="0.06" position="0 0 0" opacity="0.85"></a-cylinder>\
-              <a-entity gltf-model="#duck-model" position="0 0.1 0" rotation="-90 0 0" scale="0.014 0.014 0.014" animation="property: rotation; to: -90 360 0; loop: true; dur: 5000; easing: linear"></a-entity>\
-            </a-marker>\
-            <a-entity camera></a-entity>\
-          </a-scene>';
+        var root = document.getElementById('ar-root');
+        root.innerHTML = '';
+
+        var scene = document.createElement('a-scene');
+        scene.setAttribute('embedded', '');
+        scene.setAttribute('fit-ar-layers', '');
+        scene.setAttribute('vr-mode-ui', 'enabled: false');
+        scene.setAttribute('renderer', 'antialias: true; alpha: true; precision: mediump');
+        scene.setAttribute('arjs', 'sourceType: webcam; trackingMethod: best; debugUIEnabled: false;');
+        scene.innerHTML = '\
+          <a-assets timeout="10000">\
+            <a-asset-item id="duck-model" src="https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Models@master/2.0/Duck/glTF-Binary/Duck.glb"></a-asset-item>\
+          </a-assets>\
+          <a-marker preset="hiro" smooth="true" smoothCount="5" smoothTolerance="0.01" smoothThreshold="2">\
+            <a-cylinder color="#35d07f" radius="0.35" height="0.06" position="0 0 0" opacity="0.85"></a-cylinder>\
+            <a-entity gltf-model="#duck-model" position="0 0.1 0" rotation="-90 0 0" scale="0.014 0.014 0.014" animation="property: rotation; to: -90 360 0; loop: true; dur: 5000; easing: linear"></a-entity>\
+          </a-marker>\
+          <a-entity camera></a-entity>';
+        root.appendChild(scene);
+        return scene;
       };
 
       window.addEventListener('DOMContentLoaded', function () {
         var start = document.getElementById('start-ar');
         var screen = document.getElementById('start-screen');
         var status = document.getElementById('start-status');
-        start.addEventListener('click', function () {
+        start.addEventListener('click', async function () {
           start.disabled = true;
-          status.textContent = 'Opening camera...';
-          createScene();
-          window.setTimeout(function () {
-            screen.style.display = 'none';
-          }, 700);
+          status.textContent = 'Requesting camera permission...';
+
+          try {
+            await requestCameraOnce();
+            status.textContent = 'Starting AR camera...';
+            createScene();
+            window.setTimeout(function () {
+              screen.style.display = 'none';
+            }, 1200);
+          } catch (error) {
+            start.disabled = false;
+            status.textContent = 'Camera did not start: ' + (error && error.message ? error.message : error);
+          }
         });
       });
     </script>
