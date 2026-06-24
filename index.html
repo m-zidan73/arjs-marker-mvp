@@ -15,18 +15,19 @@
         background: #000;
       }
 
-      body > video,
-      body > canvas,
-      .a-canvas {
+      video,
+      .a-canvas,
+      a-scene {
         position: fixed !important;
         inset: 0 !important;
         width: 100vw !important;
         height: 100vh !important;
-        object-fit: cover !important;
       }
 
-      body > video {
+      video {
+        object-fit: cover !important;
         z-index: 0 !important;
+        transform: none !important;
       }
 
       .a-canvas,
@@ -35,11 +36,8 @@
         background: transparent !important;
       }
 
-      a-scene {
-        position: fixed;
-        inset: 0;
-        width: 100vw;
-        height: 100vh;
+      .a-canvas {
+        pointer-events: none;
       }
 
       .hud {
@@ -64,6 +62,58 @@
     </style>
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
+    <script>
+      AFRAME.registerComponent('fit-ar-layers', {
+        init: function () {
+          var scene = this.el;
+          var fit = function () {
+            document.querySelectorAll('video').forEach(function (video) {
+              video.setAttribute('playsinline', '');
+              video.setAttribute('webkit-playsinline', '');
+              video.style.position = 'fixed';
+              video.style.top = '0';
+              video.style.left = '0';
+              video.style.width = '100vw';
+              video.style.height = '100vh';
+              video.style.objectFit = 'cover';
+              video.style.zIndex = '0';
+              video.style.transform = 'none';
+            });
+
+            var canvas = scene.canvas || document.querySelector('.a-canvas');
+            if (canvas) {
+              canvas.style.position = 'fixed';
+              canvas.style.top = '0';
+              canvas.style.left = '0';
+              canvas.style.width = '100vw';
+              canvas.style.height = '100vh';
+              canvas.style.zIndex = '1';
+              canvas.style.background = 'transparent';
+            }
+
+            if (scene.renderer) {
+              scene.renderer.setClearColor(0x000000, 0);
+              scene.renderer.setClearAlpha(0);
+            }
+          };
+
+          scene.addEventListener('loaded', fit);
+          scene.addEventListener('render-target-loaded', fit);
+          window.addEventListener('resize', fit);
+          window.addEventListener('orientationchange', function () {
+            window.setTimeout(fit, 250);
+          });
+
+          var tries = 0;
+          var interval = window.setInterval(function () {
+            fit();
+            tries += 1;
+            if (tries > 24) window.clearInterval(interval);
+          }, 250);
+          fit();
+        }
+      });
+    </script>
   </head>
   <body>
     <div class="hud">
@@ -73,9 +123,10 @@
 
     <a-scene
       embedded
+      fit-ar-layers
       vr-mode-ui="enabled: false"
       renderer="antialias: true; alpha: true; precision: mediump"
-      arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: false; sourceWidth: 640; sourceHeight: 480; displayWidth: 640; displayHeight: 480;"
+      arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: false;"
     >
       <a-assets timeout="10000">
         <a-asset-item
@@ -85,12 +136,12 @@
       </a-assets>
 
       <a-marker preset="hiro" smooth="true" smoothCount="5" smoothTolerance="0.01" smoothThreshold="2">
-        <a-cylinder color="#35d07f" radius="0.55" height="0.08" position="0 0 0" opacity="0.85"></a-cylinder>
+        <a-cylinder color="#35d07f" radius="0.35" height="0.06" position="0 0 0" opacity="0.85"></a-cylinder>
         <a-entity
           gltf-model="#duck-model"
-          position="0 0.12 0"
+          position="0 0.1 0"
           rotation="-90 0 0"
-          scale="0.02 0.02 0.02"
+          scale="0.014 0.014 0.014"
           animation="property: rotation; to: -90 360 0; loop: true; dur: 5000; easing: linear"
         ></a-entity>
       </a-marker>
