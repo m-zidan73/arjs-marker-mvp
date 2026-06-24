@@ -1,4 +1,4 @@
-# AR.js Marker MVP
+﻿# AR.js Marker MVP
 
 A minimal static WebAR demo using AR.js and A-Frame. It opens the phone camera, tracks the Hiro marker, and places a small glTF duck model on top of the marker.
 
@@ -17,4 +17,4 @@ Because camera access requires a secure context on phones, test the full AR flow
 
 ## Publishing
 
-This repo is ready for GitHub Pages. Push it to GitHub, then enable Pages from the repository settings using the `master` branch and `/root` folder.
+This repo is ready for GitHub Pages. Push it to GitHub, then enable Pages from the repository settings using the `main` branch and `/root` folder.
