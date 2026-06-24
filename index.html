@@ -15,90 +15,51 @@
         background: #000;
       }
 
+      body {
+        position: fixed;
+        inset: 0;
+      }
+
       video,
       #arjs-video,
+      canvas,
       .a-canvas,
       a-scene {
         position: fixed !important;
         top: 0 !important;
         left: 0 !important;
+        right: auto !important;
+        bottom: auto !important;
         width: 100vw !important;
         width: 100dvw !important;
         height: 100vh !important;
         height: 100dvh !important;
+        min-width: 100vw !important;
+        min-height: 100vh !important;
         max-width: none !important;
         max-height: none !important;
+        margin: 0 !important;
+        transform: none !important;
       }
 
       video,
       #arjs-video {
         object-fit: cover !important;
         z-index: 0 !important;
-        transform: none !important;
         visibility: visible !important;
         opacity: 1 !important;
       }
 
+      canvas,
       .a-canvas,
       a-scene {
         z-index: 1 !important;
         background: transparent !important;
+        background-color: transparent !important;
       }
 
       .a-canvas {
         pointer-events: none;
-      }
-
-      .start-screen {
-        position: fixed;
-        inset: 0;
-        z-index: 5;
-        display: grid;
-        place-items: center;
-        padding: 24px;
-        color: #fff;
-        background: #050505;
-        text-align: center;
-      }
-
-      .start-panel {
-        max-width: 380px;
-      }
-
-      .start-panel h1 {
-        margin: 0 0 10px;
-        font-size: 24px;
-        font-weight: 700;
-      }
-
-      .start-panel p {
-        margin: 0 0 18px;
-        color: #cfcfcf;
-        font-size: 15px;
-        line-height: 1.45;
-      }
-
-      .start-panel button {
-        min-height: 48px;
-        padding: 0 22px;
-        border: 0;
-        border-radius: 8px;
-        color: #07130c;
-        background: #35d07f;
-        font: inherit;
-        font-weight: 700;
-      }
-
-      .start-panel button:disabled {
-        opacity: 0.65;
-      }
-
-      .start-panel .status {
-        min-height: 20px;
-        margin-top: 12px;
-        color: #f1d27a;
-        font-size: 13px;
-        line-height: 1.35;
       }
 
       .hud {
@@ -120,6 +81,13 @@
         display: block;
         font-size: 15px;
       }
+
+      .debug {
+        display: block;
+        margin-top: 3px;
+        color: #f1d27a;
+        font-size: 12px;
+      }
     </style>
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
@@ -139,8 +107,8 @@
           };
           var fitBox = function (el, size, zIndex) {
             important(el, 'position', 'fixed');
-            important(el, 'top', '0');
-            important(el, 'left', '0');
+            important(el, 'top', '0px');
+            important(el, 'left', '0px');
             important(el, 'right', 'auto');
             important(el, 'bottom', 'auto');
             important(el, 'width', size.width + 'px');
@@ -150,16 +118,21 @@
             important(el, 'max-width', 'none');
             important(el, 'max-height', 'none');
             important(el, 'margin', '0');
+            important(el, 'transform', 'none');
             important(el, 'z-index', zIndex);
           };
           var fit = function () {
             var size = viewport();
+            document.documentElement.style.width = size.width + 'px';
+            document.documentElement.style.height = size.height + 'px';
+            document.body.style.width = size.width + 'px';
+            document.body.style.height = size.height + 'px';
+
             document.querySelectorAll('video, #arjs-video').forEach(function (video) {
               video.setAttribute('playsinline', '');
               video.setAttribute('webkit-playsinline', '');
               fitBox(video, size, '0');
               important(video, 'object-fit', 'cover');
-              important(video, 'transform', 'none');
               important(video, 'visibility', 'visible');
               important(video, 'opacity', '1');
 
@@ -169,10 +142,11 @@
               }
             });
 
-            [scene, scene.canvas, document.querySelector('.a-canvas')].forEach(function (canvas) {
+            [scene, scene.canvas].concat(Array.prototype.slice.call(document.querySelectorAll('canvas, .a-canvas'))).forEach(function (canvas) {
               if (!canvas) return;
               fitBox(canvas, size, '1');
               important(canvas, 'background', 'transparent');
+              important(canvas, 'background-color', 'transparent');
             });
 
             if (scene.renderer) {
@@ -187,7 +161,7 @@
           window.addEventListener('resize', fit);
           window.addEventListener('orientationchange', function () {
             window.setTimeout(fit, 250);
-            window.setTimeout(fit, 800);
+            window.setTimeout(fit, 900);
           });
           if (window.visualViewport) {
             window.visualViewport.addEventListener('resize', fit);
@@ -197,10 +171,10 @@
           var observer = new MutationObserver(fit);
           observer.observe(document.body, { attributes: true, childList: true, subtree: true });
 
-          var start = Date.now();
+          var started = Date.now();
           var tick = function () {
             fit();
-            if (Date.now() - start < 120000) {
+            if (Date.now() - started < 120000) {
               window.requestAnimationFrame(tick);
             }
           };
@@ -208,81 +182,79 @@
         }
       });
 
-      var createScene = function () {
-        var root = document.getElementById('ar-root');
-        root.innerHTML = '';
+      AFRAME.registerComponent('ar-status', {
+        init: function () {
+          var status = document.getElementById('status-line');
+          var scene = this.el;
+          var update = function (message) {
+            if (status) status.textContent = message;
+          };
 
-        var scene = document.createElement('a-scene');
-        scene.setAttribute('embedded', '');
-        scene.setAttribute('fit-ar-layers', '');
-        scene.setAttribute('vr-mode-ui', 'enabled: false');
-        scene.setAttribute('renderer', 'antialias: true; alpha: true; precision: mediump');
-        scene.setAttribute('arjs', 'sourceType: webcam; trackingMethod: best; debugUIEnabled: false;');
-        scene.innerHTML = '\
-          <a-assets timeout="10000">\
-            <a-asset-item id="duck-model" src="https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Models@master/2.0/Duck/glTF-Binary/Duck.glb"></a-asset-item>\
-          </a-assets>\
-          <a-marker preset="hiro" smooth="true" smoothCount="5" smoothTolerance="0.01" smoothThreshold="2">\
-            <a-cylinder color="#35d07f" radius="0.35" height="0.06" position="0 0 0" opacity="0.85"></a-cylinder>\
-            <a-entity gltf-model="#duck-model" position="0 0.1 0" rotation="-90 0 0" scale="0.014 0.014 0.014" animation="property: rotation; to: -90 360 0; loop: true; dur: 5000; easing: linear"></a-entity>\
-          </a-marker>\
-          <a-entity camera></a-entity>';
-        root.appendChild(scene);
-        return scene;
-      };
+          scene.addEventListener('camera-init', function () {
+            update('Camera initialized. Point at the Hiro marker.');
+          });
+          scene.addEventListener('camera-error', function () {
+            update('Camera error. Reset site camera permission or try Chrome.');
+          });
 
-      var getCameraVideo = function () {
-        return Array.prototype.find.call(document.querySelectorAll('video, #arjs-video'), function (video) {
-          return video.srcObject || video.readyState > 0 || video.videoWidth > 0;
-        });
-      };
+          var marker = document.querySelector('a-marker');
+          marker.addEventListener('markerFound', function () {
+            update('Marker found. Duck should be visible.');
+          });
+          marker.addEventListener('markerLost', function () {
+            update('Camera active. Looking for Hiro marker...');
+          });
 
-      window.addEventListener('DOMContentLoaded', function () {
-        var start = document.getElementById('start-ar');
-        var screen = document.getElementById('start-screen');
-        var status = document.getElementById('start-status');
-        start.addEventListener('click', function () {
-          start.disabled = true;
-          status.textContent = 'Starting AR.js camera...';
-          createScene();
-
-          var startedAt = Date.now();
+          var started = Date.now();
           var timer = window.setInterval(function () {
-            var video = getCameraVideo();
-            if (video) {
-              status.textContent = 'Camera started.';
+            var video = document.querySelector('video, #arjs-video');
+            if (video && (video.srcObject || video.videoWidth > 0 || video.readyState > 0)) {
+              update('Camera active. Looking for Hiro marker...');
               window.clearInterval(timer);
-              window.setTimeout(function () {
-                screen.style.display = 'none';
-              }, 350);
-              return;
-            }
-
-            if (Date.now() - startedAt > 15000) {
+            } else if (Date.now() - started > 15000) {
+              update('No camera feed detected. Check site camera permission or try Chrome.');
               window.clearInterval(timer);
-              start.disabled = false;
-              status.textContent = 'AR.js did not create a camera feed. Try Chrome, or reset camera permission for this site and reload.';
             }
-          }, 250);
-        });
+          }, 500);
+        }
       });
     </script>
   </head>
   <body>
-    <div id="start-screen" class="start-screen">
-      <div class="start-panel">
-        <h1>AR.js Marker MVP</h1>
-        <p>Tap start, allow camera access, then point at the Hiro marker.</p>
-        <button id="start-ar" type="button">Start Camera</button>
-        <div id="start-status" class="status"></div>
-      </div>
-    </div>
-
     <div class="hud">
       <strong>AR.js marker test</strong>
-      Point at the Hiro marker. If tracking works, a duck and green base appear on the marker.
+      Allow camera access, then point at the Hiro marker.
+      <span id="status-line" class="debug">Waiting for camera permission...</span>
     </div>
 
-    <div id="ar-root"></div>
+    <a-scene
+      embedded
+      fit-ar-layers
+      ar-status
+      vr-mode-ui="enabled: false"
+      device-orientation-permission-ui="enabled: false"
+      renderer="antialias: true; alpha: true; precision: mediump"
+      arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: false;"
+    >
+      <a-assets timeout="10000">
+        <a-asset-item
+          id="duck-model"
+          src="https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Models@master/2.0/Duck/glTF-Binary/Duck.glb"
+        ></a-asset-item>
+      </a-assets>
+
+      <a-marker preset="hiro" smooth="true" smoothCount="5" smoothTolerance="0.01" smoothThreshold="2">
+        <a-cylinder color="#35d07f" radius="0.35" height="0.06" position="0 0 0" opacity="0.85"></a-cylinder>
+        <a-entity
+          gltf-model="#duck-model"
+          position="0 0.1 0"
+          rotation="-90 0 0"
+          scale="0.014 0.014 0.014"
+          animation="property: rotation; to: -90 360 0; loop: true; dur: 5000; easing: linear"
+        ></a-entity>
+      </a-marker>
+
+      <a-entity camera></a-entity>
+    </a-scene>
   </body>
 </html>
